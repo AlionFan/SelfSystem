@@ -1,3 +1,11 @@
+## 2026-09-07 · 四象限可继续调整 3.1.1 已上线
+
+- 正式入口 https://me.joybeat.cn；镜像 `joybeat-me:3.1.1`，镜像 ID `sha256:466df0ec101ebbd8430cf50b39c6ec10e5ae4b69a6ab305777cb0228b58faa4e`。
+- 发布目录 `/data/joybeat-me/releases/3.1.1`；回滚点 `/data/joybeat-me/rollback/pre-quadrant-20260907T021605Z`。生产数据库与账号、AI、语音配置卷保持不变。
+- 四象限已划分的任务和日程仍可从编辑窗口重新选择重要度；展板继续支持桌面拖动、手机长按和点击手柄选择位置。
+- 生产容器切换后为 healthy；公网首页与健康接口正常，匿名 `/api/entries` 仍返回 401。
+- 本机完整测试 73 项通过，生产构建通过；私有 GitHub 仓库 `AlionFan/SelfSystem` 的 `main` 已同步。
+
 ## 2026-09-07 · 使用体验与重复计划 3.1.0 已上线
 
 - 正式入口 https://me.joybeat.cn；镜像 `joybeat-me:3.1.0`，摘要 `sha256:020a1ecbd213aa56fc7fb7b8b67d75131208b70cce96d891b0504c755732e291`。
@@ -26,7 +34,7 @@
 
 # Me 账号版部署记录
 
-正式入口：[https://me.joybeat.cn](https://me.joybeat.cn)。当前版本 3.1.0 已于 2026-09-07 上线，客户端证书要求已移除。
+正式入口：[https://me.joybeat.cn](https://me.joybeat.cn)。当前版本 3.1.1 已于 2026-09-07 上线，客户端证书要求已移除。
 
 ## 当前配置
 
@@ -37,7 +45,7 @@
 | DNS | 腾讯云 DNSPod，me A 记录，TTL 600 |
 | Coolify 服务 | joybeat-me，c6zlqam9byswlqx825cse0bc |
 | 应用容器 | me-c6zlqam9byswlqx825cse0bc |
-| 镜像 | joybeat-me:3.1.0，020a1ecbd213 |
+| 镜像 | joybeat-me:3.1.1，466df0ec101e |
 | 数据 / 配置 | /data/joybeat-me/data、/data/joybeat-me/config |
 | 身份验证 | 邮箱验证码注册，邮箱和密码登录；Secure/HttpOnly 会话 Cookie |
 | 主账号 | 1210604006@cnu.edu.cn |
