@@ -1,0 +1,10 @@
+[Unit]
+Description=Consistent backup of Me personal workspace
+After=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/data/joybeat-me/backup-server.sh
+Nice=10
+IOSchedulingClass=idle

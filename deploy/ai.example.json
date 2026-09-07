@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "model": "qwen-flash",
+  "apiKey": "",
+  "perUserDailyLimit": 100,
+  "globalDailyLimit": 2000,
+  "monthlyBudgetYuan": 20,
+  "voiceEnabled": true,
+  "voiceDailySeconds": 1200
+}

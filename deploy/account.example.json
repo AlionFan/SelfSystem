@@ -1,0 +1,15 @@
+{
+  "secret": "REPLACE_WITH_32_RANDOM_BYTES_BASE64URL",
+  "ownerEmail": "1210604006@cnu.edu.cn",
+  "registration": "open",
+  "wechatProvider": "pushplus",
+  "smtp": {
+    "host": "smtp.qq.com",
+    "port": 465,
+    "secure": true,
+    "user": "sender@example.com",
+    "password": "REPLACE_WITH_SMTP_APP_PASSWORD",
+    "from": "Me <sender@example.com>",
+    "dailyLimit": 100
+  }
+}

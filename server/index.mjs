@@ -1,0 +1,20 @@
+import { readFileSync,existsSync } from 'node:fs';
+import { openStore } from './store.mjs';
+import { createApp } from './app.mjs';
+import {initializeOwner} from './account-auth.mjs';
+const mode=process.env.AUTH_MODE;
+if(mode==='local-dev'&&(process.env.NODE_ENV==='production'||process.env.HOST!=='127.0.0.1'))throw new Error('Development server must bind to loopback');
+const store=openStore(process.env.DATA_DIR??'data');
+const accountConfig=mode==='account'?JSON.parse(readFileSync(process.env.ACCOUNT_CONFIG_FILE,'utf8')):null;
+if(accountConfig)initializeOwner(store,accountConfig);
+const secureCookies=process.env.NODE_ENV==='production';
+if(!secureCookies&&process.env.HOST!=='127.0.0.1')throw new Error('Development accounts must bind to loopback');
+const aiConfig=process.env.AI_CONFIG_FILE&&existsSync(process.env.AI_CONFIG_FILE)?JSON.parse(readFileSync(process.env.AI_CONFIG_FILE,'utf8')):null;
+const {app,push,wechat,ai,voice,org,orgAi,orgNotifications}=createApp({store,mode,accountConfig,aiConfig,secureCookies,origin:process.env.APP_ORIGIN,caFile:process.env.CLIENT_CA_FILE,proxySecret:process.env.PROXY_SECRET_FILE?readFileSync(process.env.PROXY_SECRET_FILE,'utf8').trim():undefined,vapidFile:process.env.VAPID_FILE});
+const server=app.listen(Number(process.env.PORT??3000),process.env.HOST??'0.0.0.0',()=>console.log('Me is ready'));
+const tick=()=>{voice.cleanup();orgAi?.cleanup();org?.productivity.tick();return Promise.allSettled([push.tick(),wechat.tick(),orgNotifications?.tick()]);};
+const aiTimer=setInterval(()=>ai.tick(),2000);aiTimer.unref();ai.tick();
+const timer=setInterval(tick,30000);timer.unref();tick();
+let stopping=false;
+function shutdown(){if(stopping)return;stopping=true;clearInterval(timer);clearInterval(aiTimer);server.close(()=>{store.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}
+process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);

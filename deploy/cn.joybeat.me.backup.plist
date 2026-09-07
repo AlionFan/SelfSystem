@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>cn.joybeat.me.backup</string>
+  <key>ProgramArguments</key><array><string>/bin/sh</string><string>/Users/fan/Code/SelfSystem/scripts/pull-backup.sh</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>21600</integer>
+  <key>WorkingDirectory</key><string>/Users/fan/Code/SelfSystem</string>
+  <key>StandardOutPath</key><string>/Users/fan/Code/SelfSystem/.local/backups/pull.log</string>
+  <key>StandardErrorPath</key><string>/Users/fan/Code/SelfSystem/.local/backups/pull-error.log</string>
+  <key>Umask</key><integer>63</integer>
+</dict></plist>

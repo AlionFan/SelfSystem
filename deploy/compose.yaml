@@ -1,0 +1,40 @@
+services:
+  me:
+    image: joybeat-me:3.1.1
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      APP_ORIGIN: https://me.joybeat.cn
+      DATA_DIR: /data
+      AUTH_MODE: account
+      ACCOUNT_CONFIG_FILE: /config/account.json
+      AI_CONFIG_FILE: /config/ai.json
+      VAPID_FILE: /config/vapid.json
+    volumes:
+      - /data/joybeat-me/data:/data
+      - /data/joybeat-me/config:/config:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+    cpus: 0.75
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - traefik.enable=false
+    networks:
+      coolify:
+        aliases:
+          - joybeat-me
+networks:
+  coolify:
+    external: true

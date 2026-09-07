@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env*
+!.env.example
+.local/
+data/
+backups/
+access/
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite*
+*.log
+.DS_Store

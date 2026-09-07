@@ -1,0 +1,31 @@
+{
+  "name": "joybeat-me",
+  "version": "3.1.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "device": "node scripts/device.mjs",
+    "backup": "node scripts/backup.mjs"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "lucide-react": "1.41.0",
+    "nodemailer": "10.0.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "web-push": "3.6.7",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "fake-indexeddb": "6.2.5",
+    "vite": "8.2.2"
+  }
+}

@@ -1,0 +1,46 @@
+import {z} from 'zod';
+import {checklistSchema} from './organization-execution.mjs';
+export const orgId=z.uuid();
+export const orgDate=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>!Number.isNaN(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v);
+export const orgTime=z.string().regex(/^\d{2}:\d{2}$/).refine(v=>{const [h,m]=v.split(':').map(Number);return h<24&&m<60;});
+const optionalId=orgId.nullable().default(null),optionalDate=orgDate.nullable().default(null),optionalTime=orgTime.nullable().default(null);
+export const orgSettingsSchema=z.object({aiEnabled:z.boolean().default(false),voiceEnabled:z.boolean().default(false),wechatEnabled:z.boolean().default(false),notificationTitles:z.boolean().default(false),aiBudgetYuan:z.number().min(0).max(20).default(5)}).strict();
+export const memberPreferenceSchema=z.object({wechat:z.boolean().default(false),mode:z.enum(['immediate','digest','off']).default('immediate'),quietStart:orgTime.default('22:00'),quietEnd:orgTime.default('08:00')}).strict();
+export const taskContentSchema=z.object({kind:z.enum(['task','event','note']).default('task'),title:z.string().trim().max(200).default(''),body:z.string().trim().min(1,'请填写任务内容').max(10000),tags:z.array(z.string().trim().min(1).max(30)).max(12).default([]),scheduledDate:optionalDate,scheduledTime:optionalTime,dueDate:optionalDate,dueTime:optionalTime,durationMinutes:z.number().int().min(1).max(10080).nullable().default(null),startAt:z.iso.datetime({offset:true}).nullable().default(null),endAt:z.iso.datetime({offset:true}).nullable().default(null),allDay:z.boolean().default(false),quadrant:z.enum(['urgent-important','important','urgent','later']).nullable().default(null),acceptanceCriteria:z.string().max(3000).default(''),checklist:checklistSchema.default([])}).strict().superRefine((v,c)=>{if(v.endAt&&(!v.startAt||Date.parse(v.endAt)<=Date.parse(v.startAt)))c.addIssue({code:'custom',message:'结束时间需要晚于开始时间',path:['endAt']});if(v.scheduledDate&&v.dueDate&&v.scheduledDate>v.dueDate)c.addIssue({code:'custom',message:'计划日期不能晚于截止日期',path:['dueDate']});if(v.kind!=='event'&&(v.startAt||v.endAt||v.allDay))c.addIssue({code:'custom',message:'仅日程填写起止时间',path:['startAt']});});
+export const taskAssignmentSchema=z.object({assigneeId:optionalId,reviewerId:optionalId,projectId:optionalId,departmentId:optionalId,collaboratorIds:z.array(orgId).max(30).default([]),visibility:z.enum(['participants','project','department','organization']).default('participants'),acceptRequired:z.boolean().default(false),reviewRequired:z.boolean().default(false)}).strict();
+export const taskDraftSchema=z.object({id:orgId,content:taskContentSchema,assignment:taskAssignmentSchema,publish:z.boolean().default(true)}).strict();
+export function migrateOrganizations(db){
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS organizations(id TEXT PRIMARY KEY,name TEXT NOT NULL,short_name TEXT NOT NULL,settings TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'active',version INTEGER NOT NULL DEFAULT 1,transfer_to TEXT,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_members(org_id TEXT NOT NULL REFERENCES organizations(id),user_id TEXT NOT NULL REFERENCES users(id),name TEXT NOT NULL,role TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'active',department_id TEXT,preferences TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,joined_at TEXT NOT NULL,PRIMARY KEY(org_id,user_id));
+    CREATE TABLE IF NOT EXISTS org_scopes(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id),kind TEXT NOT NULL,name TEXT NOT NULL,lead_id TEXT,version INTEGER NOT NULL DEFAULT 1,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_scope_members(scope_id TEXT NOT NULL REFERENCES org_scopes(id),user_id TEXT NOT NULL REFERENCES users(id),PRIMARY KEY(scope_id,user_id));
+    CREATE TABLE IF NOT EXISTS org_invitations(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id),email TEXT NOT NULL,role TEXT NOT NULL,department_id TEXT,created_by TEXT NOT NULL,code_hash TEXT UNIQUE NOT NULL,expires_at TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',mail_state TEXT NOT NULL DEFAULT 'not_sent',created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_tasks(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id),creator_id TEXT NOT NULL,assignee_id TEXT,reviewer_id TEXT,project_id TEXT,department_id TEXT,collaborator_ids TEXT NOT NULL,visibility TEXT NOT NULL,accept_required INTEGER NOT NULL,review_required INTEGER NOT NULL,status TEXT NOT NULL,content TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,source TEXT NOT NULL,accepted_at TEXT,started_at TEXT,submitted_at TEXT,completed_at TEXT,archived_at TEXT,blocked_reason TEXT NOT NULL DEFAULT '',completion_note TEXT NOT NULL DEFAULT '',review_note TEXT NOT NULL DEFAULT '',original_due TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_checklist_checks(task_id TEXT NOT NULL REFERENCES org_tasks(id),item_id TEXT NOT NULL,user_id TEXT NOT NULL,completed_at TEXT NOT NULL,PRIMARY KEY(task_id,item_id));
+    CREATE TABLE IF NOT EXISTS org_task_deliverables(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,task_id TEXT NOT NULL REFERENCES org_tasks(id),user_id TEXT NOT NULL,label TEXT NOT NULL,url TEXT NOT NULL,created_at TEXT NOT NULL,removed_at TEXT);
+    CREATE INDEX IF NOT EXISTS org_deliverable_task ON org_task_deliverables(task_id,created_at);
+    CREATE TABLE IF NOT EXISTS org_task_comments(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,task_id TEXT NOT NULL REFERENCES org_tasks(id),user_id TEXT NOT NULL,body TEXT NOT NULL,mentions TEXT NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_task_events(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,task_id TEXT NOT NULL REFERENCES org_tasks(id),actor_id TEXT NOT NULL,action TEXT NOT NULL,detail TEXT NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_task_requests(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,task_id TEXT NOT NULL REFERENCES org_tasks(id),user_id TEXT NOT NULL,kind TEXT NOT NULL,proposal TEXT NOT NULL,reason TEXT NOT NULL,base_version INTEGER NOT NULL,state TEXT NOT NULL DEFAULT 'pending',resolved_by TEXT,resolution TEXT,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_shares(id TEXT PRIMARY KEY,org_id TEXT NOT NULL REFERENCES organizations(id),owner_id TEXT NOT NULL,source_id TEXT NOT NULL,snapshot TEXT NOT NULL,recipients TEXT NOT NULL,visibility TEXT NOT NULL,scope_id TEXT,version INTEGER NOT NULL DEFAULT 1,revoked_at TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_operations(org_id TEXT NOT NULL,user_id TEXT NOT NULL,id TEXT NOT NULL,request_hash TEXT NOT NULL,result TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(org_id,user_id,id));
+    CREATE TABLE IF NOT EXISTS org_audit(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,actor_id TEXT NOT NULL,action TEXT NOT NULL,detail TEXT NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_task_preferences(task_id TEXT NOT NULL REFERENCES org_tasks(id),user_id TEXT NOT NULL,muted INTEGER NOT NULL DEFAULT 0,snooze_until TEXT,quadrant TEXT,focus_date TEXT,PRIMARY KEY(task_id,user_id));
+    CREATE TABLE IF NOT EXISTS org_notifications(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,task_id TEXT,recipient_id TEXT NOT NULL,actor_id TEXT NOT NULL,kind TEXT NOT NULL,event_key TEXT NOT NULL,acknowledged_at TEXT,created_at TEXT NOT NULL,UNIQUE(recipient_id,event_key));
+    CREATE TABLE IF NOT EXISTS org_notification_deliveries(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,recipient_id TEXT NOT NULL,notification_ids TEXT NOT NULL,state TEXT NOT NULL,callback_hash TEXT UNIQUE,short_code TEXT,attempts INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,error TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS org_ai_previews(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,user_id TEXT NOT NULL,request_hash TEXT NOT NULL,state TEXT NOT NULL,result TEXT,error TEXT,created_at INTEGER NOT NULL);
+    CREATE INDEX IF NOT EXISTS org_member_user ON org_members(user_id,state);
+    CREATE INDEX IF NOT EXISTS org_scope_org ON org_scopes(org_id,kind);
+    CREATE INDEX IF NOT EXISTS org_task_org ON org_tasks(org_id,status,updated_at);
+    CREATE INDEX IF NOT EXISTS org_task_assignee ON org_tasks(assignee_id,org_id);
+    CREATE INDEX IF NOT EXISTS org_comment_task ON org_task_comments(task_id,created_at);
+    CREATE INDEX IF NOT EXISTS org_event_task ON org_task_events(task_id,created_at);
+    CREATE INDEX IF NOT EXISTS org_request_task ON org_task_requests(task_id,state);
+    CREATE INDEX IF NOT EXISTS org_share_org ON org_shares(org_id,revoked_at);
+    CREATE INDEX IF NOT EXISTS org_notification_user ON org_notifications(recipient_id,created_at);
+    CREATE INDEX IF NOT EXISTS org_notification_pending ON org_notification_deliveries(state,next_attempt);
+  `);
+  for(const table of ['ai_usage','voice_usage','voice_jobs'])if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name==='org_id'))db.exec(`ALTER TABLE ${table} ADD COLUMN org_id TEXT`);
+  if(!db.prepare('PRAGMA table_info(org_notifications)').all().some(c=>c.name==='delivery_id'))db.exec('ALTER TABLE org_notifications ADD COLUMN delivery_id TEXT');
+}
