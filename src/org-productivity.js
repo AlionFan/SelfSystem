@@ -1,5 +1,5 @@
 const dayRank={'已逾期':0,'待我接收':1,'待我验收':2,'今日到期':3,'今日重点':4,'今日计划':5};
-export const fieldNames={kind:'类别',title:'标题',body:'正文',tags:'标签',scheduledDate:'计划日期',scheduledTime:'计划时刻',dueDate:'截止日期',dueTime:'截止时刻',durationMinutes:'预计投入',startAt:'日程开始',endAt:'日程结束',allDay:'全天',quadrant:'组织优先级',acceptanceCriteria:'验收标准'};
+export const fieldNames={kind:'类别',title:'标题',body:'正文',tags:'标签',scheduledDate:'计划日期',scheduledTime:'计划时刻',dueDate:'截止日期',dueTime:'截止时刻',durationMinutes:'预计投入',startAt:'日程开始',endAt:'日程结束',allDay:'全天',quadrant:'组织优先级',acceptanceCriteria:'验收标准',checklist:'检查清单'};
 export function prepareAiItems(original,suggestions,manualFields){
  const fields=new Set(manualFields.filter(k=>k!=='body'&&k in fieldNames));
  return suggestions.map((item,index)=>index?{...item}:{...item,...Object.fromEntries([...fields].map(k=>[k,original[k]]))});
