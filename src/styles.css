@@ -130,3 +130,8 @@
 .voice-actions:empty{display:none}.voice-actions .button{min-height:40px;font-size:13px}
 .voice-recording-dot{width:8px;height:8px;border-radius:50%;background:#c5594b;flex-shrink:0}
 @media(max-width:600px){.voice-trigger{width:40px;height:40px;right:102px;top:5px}.composer.is-expanded .voice-trigger{right:10px;top:8px}.voice-panel{padding:10px;margin-top:36px}.voice-status{font-size:12px}.voice-actions .button{min-height:44px}}
+
+/* Keep help within reach without replacing an in-progress workspace. */
+.site-guide-link{display:inline-flex;align-items:center;gap:7px;min-height:38px;font-size:12px;color:#65785a}.site-guide-link:hover{color:#36594c}.sidebar-bottom .site-guide-link{display:flex;padding:12px;gap:10px}.topbar-guide{display:none}.auth-footer{flex-wrap:wrap;gap:10px}.auth-footer .site-guide-link{font-size:10px}.org-top .site-guide-link{padding:6px}
+@media(max-width:800px){.topbar-guide{display:inline-flex}.topbar-guide span{display:none}}
+@media(max-width:480px){.org-top .site-guide-link{width:36px;justify-content:center}.org-top .site-guide-link span{display:none}}
